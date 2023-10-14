@@ -1,0 +1,4 @@
+2023-10-14 17:54:44.973 UTC [147328] FATAL:  lock file "postmaster.pid" already exists
+2023-10-14 17:54:44.973 UTC [147328] HINT:  Is another postmaster (PID 147110) running in data directory "/home/sedon/Projects/go-blog-aggregator/.nix-shell/db"?
+2023-10-14 17:56:49.438 UTC [147906] FATAL:  lock file "postmaster.pid" already exists
+2023-10-14 17:56:49.438 UTC [147906] HINT:  Is another postmaster (PID 147110) running in data directory "/home/sedon/Projects/go-blog-aggregator/.nix-shell/db"?
