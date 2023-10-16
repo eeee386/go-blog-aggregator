@@ -1,0 +1,13 @@
+(undo-tree-save-format-version . 1)
+"90885cc0e040917b001b176ce6d239b5a5216d8b"
+[nil nil nil nil (25901 29515 723777 34000) 0 nil]
+([nil nil ((96 . 98) ("  " . 95) (95 . 97) (95 . 96) (t 25898 59706 447881 306000)) nil (25901 29515 723776 393000) 0 nil])
+([nil nil ((98 . 105)) nil (25901 29515 723775 882000) 0 nil])
+([nil nil (("n" . -103) (undo-tree-id0 . -1) (undo-tree-id1 . -1) (undo-tree-id2 . -1) (undo-tree-id3 . -1) (undo-tree-id4 . -1) ("t" . -104) (undo-tree-id5 . -1) (undo-tree-id6 . -1) (undo-tree-id7 . -1) 105) nil (25901 29515 723775 70000) 0 nil])
+([nil nil ((103 . 120)) nil (25901 29515 723757 758000) 0 nil])
+([nil nil (("    emit_json_tags: true
+" . 96) (undo-tree-id8 . 1) (undo-tree-id9 . -24) (undo-tree-id10 . -23) (undo-tree-id11 . -23) 119 (t 25901 29515 729282 465000)) nil (25901 29653 599725 115000) 0 nil])
+([nil nil (("
+" . -139) (114 . 140) 112) nil (25901 29653 599716 819000) 0 nil])
+([nil current ((119 . 123)) nil (25901 29653 599713 282000) 0 nil])
+nil
