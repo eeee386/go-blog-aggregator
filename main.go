@@ -192,7 +192,7 @@ func (a *apiConfig) DeleteFeedFollow(w http.ResponseWriter, r *http.Request, use
 	utils.RespondWithJSON(w, 200, "OK")
 }
 
-func (a *apiConfig) GetAllFeedsByUser(w http.ResponseWriter, r *http.Request, user database.User) {
+func (a *apiConfig) GetAllFeedFollowsByUser(w http.ResponseWriter, r *http.Request, user database.User) {
 	feedFollows, err := a.DB.GetAllFeedFollowsByUserID(a.ctx, user.ID);
 	if err != nil {
 		utils.RespondWithError(w, 500, "Internal Server Error")
@@ -242,7 +242,7 @@ func main() {
 	// feed follow endpoints
 	v1Router.Post("/feed_follows", apiCfg.authenticate(apiCfg.CreateFeedFollow));
 	v1Router.Delete("/feed_follows/{id}", apiCfg.authenticate(apiCfg.DeleteFeedFollow));
-	v1Router.Get("/feed_follows", )
+	v1Router.Get("/feed_follows", apiCfg.authenticate(apiCfg.GetAllFeedFollowsByUser))
 
 
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
