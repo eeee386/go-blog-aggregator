@@ -45,6 +45,14 @@ type CreateFeedRequest struct {
 	Url string `json:"url"`
 }
 
+type CreateFeedResponse struct {
+	Feed database.Feed `json:"feed"`
+	FeedFollow database.Feedfollow `json:"feed_follow"`
+}
+
+type CreateFeedFollowRequest struct {
+	FeedId string `json:"feed_id"`
+}
 
 func (a *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
@@ -110,7 +118,21 @@ func (a *apiConfig) CreateFeed(w http.ResponseWriter, r *http.Request, user data
 		utils.RespondWithError(w, 500, "Internal Server Error")
 		return
 	}
-	utils.RespondWithJSON(w, 201, feed)
+	dbObjf := database.CreateFeedFollowParams{}
+	dbObjf.ID = uuid.New();
+	dbObjf.CreatedAt = timeStamp;
+	dbObjf.UpdatedAt = timeStamp;
+	dbObjf.FeedID = feed.ID;
+	dbObjf.UserID = user.ID;
+	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObj);
+	if err != nil {
+		utils.RespondWithError(w, 500, "internal Server Error");
+		return
+	}
+	createFeedResponse := CreateFeedResponse{}
+	createFeedResponse.Feed = feed
+	createFeedResponse.FeedFollow = feedFollow
+	utils.RespondWithJSON(w, 201, createFeedResponse);
 }
 
 func (a *apiConfig) GetAllFeeds(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +142,63 @@ func (a *apiConfig) GetAllFeeds(w http.ResponseWriter, r *http.Request) {
 	} else {
 	  utils.RespondWithJSON(w, 200, feeds)
 	}
+}
+
+func (a *apiConfig) CreateFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	decoder := json.NewDecoder(r.Body)
+	feedFollowReq := CreateFeedFollowRequest{}
+	err := decoder.Decode(&feedFollowReq)
+	if err != nil {
+		utils.RespondWithError(w, 400, "Bad Request")
+		return
+	}
+	feedId, err := uuid.Parse(feedFollowReq.FeedId);
+	if err != nil {
+		utils.RespondWithError(w, 400, "Invalid UUID string")
+		return
+	}
+	feed, err := a.DB.GetFeedById(a.ctx, feedId);
+	if err != nil {
+		utils.RespondWithError(w, 500, "Internal Server Error")
+		return
+	}
+	dbObj := database.CreateFeedFollowParams{}
+	dbObj.ID = uuid.New();
+	timeStamp := time.Now()
+	dbObj.CreatedAt = timeStamp;
+	dbObj.UpdatedAt = timeStamp;
+	dbObj.FeedID = feed.ID;
+	dbObj.UserID = user.ID;
+	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObj);
+	if err != nil {
+		utils.RespondWithError(w, 500, "internal Server Error");
+		return
+	}
+	utils.RespondWithJSON(w, 201, feedFollow);
+}
+
+func (a *apiConfig) DeleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	id := chi.URLParam(r, "id")
+	uuid, err := uuid.Parse(id);
+	if err != nil {
+		utils.RespondWithError(w, 400, "Invalid UUID");
+		return;
+	}
+	derr := a.DB.DeleteFeedFollowById(a.ctx, uuid);
+	if derr != nil {
+		utils.RespondWithError(w, 400, "Bad Request");
+		return
+	}
+	utils.RespondWithJSON(w, 200, "OK")
+}
+
+func (a *apiConfig) GetAllFeedsByUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedFollows, err := a.DB.GetAllFeedFollowsByUserID(a.ctx, user.ID);
+	if err != nil {
+		utils.RespondWithError(w, 500, "Internal Server Error")
+		return;
+	}
+	utils.RespondWithJSON(w, 200, feedFollows);
 }
 
 func main() {
@@ -152,11 +231,19 @@ func main() {
 	v1Router.Get("/readiness", readinessHandler)
 	v1Router.Get("/err", errorHandler)
 
+	// user endpoints
 	v1Router.Post("/users", apiCfg.createUser)
 	v1Router.Get("/users", apiCfg.authenticate(GetUser))
 
+	// feed endpoints
 	v1Router.Post("/feeds", apiCfg.authenticate(apiCfg.CreateFeed))
 	v1Router.Get("/feeds", apiCfg.GetAllFeeds)
+
+	// feed follow endpoints
+	v1Router.Post("/feed_follows", apiCfg.authenticate(apiCfg.CreateFeedFollow));
+	v1Router.Delete("/feed_follows/{id}", apiCfg.authenticate(apiCfg.DeleteFeedFollow));
+	v1Router.Get("/feed_follows", )
+
 
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	fmt.Println(err)
