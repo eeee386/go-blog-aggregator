@@ -124,7 +124,7 @@ func (a *apiConfig) CreateFeed(w http.ResponseWriter, r *http.Request, user data
 	dbObjf.UpdatedAt = timeStamp;
 	dbObjf.FeedID = feed.ID;
 	dbObjf.UserID = user.ID;
-	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObj);
+	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObjf);
 	if err != nil {
 		utils.RespondWithError(w, 500, "internal Server Error");
 		return
