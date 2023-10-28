@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -39,14 +40,13 @@ type CreateUserRequest struct {
 	Name string `json:"name"`
 }
 
-
 type CreateFeedRequest struct {
 	Name string `json:"name"`
-	Url string `json:"url"`
+	Url  string `json:"url"`
 }
 
 type CreateFeedResponse struct {
-	Feed database.Feed `json:"feed"`
+	Feed       database.Feed       `json:"feed"`
 	FeedFollow database.Feedfollow `json:"feed_follow"`
 }
 
@@ -113,34 +113,34 @@ func (a *apiConfig) CreateFeed(w http.ResponseWriter, r *http.Request, user data
 	dbObj.Name = feedReq.Name
 	dbObj.UserID = user.ID
 	dbObj.Url = feedReq.Url
-  feed, err := a.DB.CreateFeed(a.ctx, dbObj)
+	feed, err := a.DB.CreateFeed(a.ctx, dbObj)
 	if err != nil {
 		utils.RespondWithError(w, 500, "Internal Server Error")
 		return
 	}
 	dbObjf := database.CreateFeedFollowParams{}
-	dbObjf.ID = uuid.New();
-	dbObjf.CreatedAt = timeStamp;
-	dbObjf.UpdatedAt = timeStamp;
-	dbObjf.FeedID = feed.ID;
-	dbObjf.UserID = user.ID;
-	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObjf);
+	dbObjf.ID = uuid.New()
+	dbObjf.CreatedAt = timeStamp
+	dbObjf.UpdatedAt = timeStamp
+	dbObjf.FeedID = feed.ID
+	dbObjf.UserID = user.ID
+	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObjf)
 	if err != nil {
-		utils.RespondWithError(w, 500, "internal Server Error");
+		utils.RespondWithError(w, 500, "internal Server Error")
 		return
 	}
 	createFeedResponse := CreateFeedResponse{}
 	createFeedResponse.Feed = feed
 	createFeedResponse.FeedFollow = feedFollow
-	utils.RespondWithJSON(w, 201, createFeedResponse);
+	utils.RespondWithJSON(w, 201, createFeedResponse)
 }
 
 func (a *apiConfig) GetAllFeeds(w http.ResponseWriter, r *http.Request) {
-	feeds, err := a.DB.GetAllFeeds(a.ctx);
+	feeds, err := a.DB.GetAllFeeds(a.ctx)
 	if err != nil {
 		utils.RespondWithError(w, 500, "Internal Server Error")
 	} else {
-	  utils.RespondWithJSON(w, 200, feeds)
+		utils.RespondWithJSON(w, 200, feeds)
 	}
 }
 
@@ -152,53 +152,103 @@ func (a *apiConfig) CreateFeedFollow(w http.ResponseWriter, r *http.Request, use
 		utils.RespondWithError(w, 400, "Bad Request")
 		return
 	}
-	feedId, err := uuid.Parse(feedFollowReq.FeedId);
+	feedId, err := uuid.Parse(feedFollowReq.FeedId)
 	if err != nil {
 		utils.RespondWithError(w, 400, "Invalid UUID string")
 		return
 	}
-	feed, err := a.DB.GetFeedById(a.ctx, feedId);
+	feed, err := a.DB.GetFeedById(a.ctx, feedId)
 	if err != nil {
 		utils.RespondWithError(w, 500, "Internal Server Error")
 		return
 	}
 	dbObj := database.CreateFeedFollowParams{}
-	dbObj.ID = uuid.New();
+	dbObj.ID = uuid.New()
 	timeStamp := time.Now()
-	dbObj.CreatedAt = timeStamp;
-	dbObj.UpdatedAt = timeStamp;
-	dbObj.FeedID = feed.ID;
-	dbObj.UserID = user.ID;
-	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObj);
+	dbObj.CreatedAt = timeStamp
+	dbObj.UpdatedAt = timeStamp
+	dbObj.FeedID = feed.ID
+	dbObj.UserID = user.ID
+	feedFollow, err := a.DB.CreateFeedFollow(a.ctx, dbObj)
 	if err != nil {
-		utils.RespondWithError(w, 500, "internal Server Error");
+		utils.RespondWithError(w, 500, "internal Server Error")
 		return
 	}
-	utils.RespondWithJSON(w, 201, feedFollow);
+	utils.RespondWithJSON(w, 201, feedFollow)
 }
 
 func (a *apiConfig) DeleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
 	id := chi.URLParam(r, "id")
-	uuid, err := uuid.Parse(id);
+	uuid, err := uuid.Parse(id)
 	if err != nil {
-		utils.RespondWithError(w, 400, "Invalid UUID");
-		return;
+		utils.RespondWithError(w, 400, "Invalid UUID")
+		return
 	}
-	derr := a.DB.DeleteFeedFollowById(a.ctx, uuid);
+	derr := a.DB.DeleteFeedFollowById(a.ctx, uuid)
 	if derr != nil {
-		utils.RespondWithError(w, 400, "Bad Request");
+		utils.RespondWithError(w, 400, "Bad Request")
 		return
 	}
 	utils.RespondWithJSON(w, 200, "OK")
 }
 
+
 func (a *apiConfig) GetAllFeedFollowsByUser(w http.ResponseWriter, r *http.Request, user database.User) {
-	feedFollows, err := a.DB.GetAllFeedFollowsByUserID(a.ctx, user.ID);
+	feedFollows, err := a.DB.GetAllFeedFollowsByUserID(a.ctx, user.ID)
 	if err != nil {
 		utils.RespondWithError(w, 500, "Internal Server Error")
-		return;
+		return
 	}
-	utils.RespondWithJSON(w, 200, feedFollows);
+	utils.RespondWithJSON(w, 200, feedFollows)
+}
+
+func (a *apiConfig) Worker(n int32) {
+	fmt.Println("Called")
+	for tick := range time.Tick(6 * time.Second) {
+		fmt.Println("Tick")
+	  var wg sync.WaitGroup
+		fmt.Println(tick);
+		dbObj := database.GetNextFeedsToFetchParams{}
+		dbObj.Limit = n
+		dbObj.Offset = 0
+		feeds, err := a.DB.GetNextFeedsToFetch(a.ctx, dbObj);
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+			return 
+		}
+		for _, feed := range(feeds) {
+			wg.Add(1)
+			go func(url string, id uuid.UUID) {
+				defer wg.Done()
+				ProcessRSSURL(url)
+				dbObj := database.MarkFeedFetchedParams{}
+				dbObj.ID = id
+				timeObj := sql.NullTime{}
+				timeObj.Time = time.Now()
+				dbObj.LastFetchedAt = timeObj
+				fmt.Println("mark fetched called")
+				a.DB.MarkFeedFetched(a.ctx, dbObj)
+			}(feed.Url, feed.ID)
+		}
+		wg.Wait()
+		fmt.Println("finished")
+	}
+}
+
+func ProcessRSSURL(url string) {
+	rss := utils.RSS{}
+	cerr := utils.RSSUrlToStruct(url, &rss);
+	if cerr != nil {
+		fmt.Printf("ERROR: %s", cerr.Error())
+		return
+	}
+	
+	fmt.Printf("Channel title: %v\n", rss.Channel.Title)
+	fmt.Printf("Channel link: %v\n", rss.Channel.Link)
+
+	for i, item := range rss.Channel.Items {
+		fmt.Printf("%v. item title: %v\n", i, item.Title)
+	}
 }
 
 func main() {
@@ -240,10 +290,11 @@ func main() {
 	v1Router.Get("/feeds", apiCfg.GetAllFeeds)
 
 	// feed follow endpoints
-	v1Router.Post("/feed_follows", apiCfg.authenticate(apiCfg.CreateFeedFollow));
-	v1Router.Delete("/feed_follows/{id}", apiCfg.authenticate(apiCfg.DeleteFeedFollow));
+	v1Router.Post("/feed_follows", apiCfg.authenticate(apiCfg.CreateFeedFollow))
+	v1Router.Delete("/feed_follows/{id}", apiCfg.authenticate(apiCfg.DeleteFeedFollow))
 	v1Router.Get("/feed_follows", apiCfg.authenticate(apiCfg.GetAllFeedFollowsByUser))
 
+	go apiCfg.Worker(2);
 
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	fmt.Println(err)

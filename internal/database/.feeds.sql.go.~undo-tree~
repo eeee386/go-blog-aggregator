@@ -1,0 +1,13 @@
+(undo-tree-save-format-version . 1)
+"08d34590f302f2440e33bcaad8fe023cde178827"
+[nil nil nil nil (25913 19960 723459 270000) 0 nil]
+([nil nil ((3515 . 3517) (t 25913 12289 833213 893000)) nil (25913 19960 723458 569000) 0 nil])
+([nil nil ((3517 . 3521)) nil (25913 19960 723457 988000) 0 nil])
+([nil nil ((3521 . 3522)) nil (25913 19960 723457 647000) 0 nil])
+([nil nil ((3522 . 3525)) nil (25913 19960 723457 297000) 0 nil])
+([nil nil ((146 . 153) (apply yas--take-care-of-redo #s(yas--snippet nil (#s(yas--field 1 3536 3552 nil nil nil t nil)) nil 57 nil #s(yas--field 1 3536 3552 nil nil nil t nil) nil nil)) (3521 . 3538) (#("Println(${1:a ...any})" 0 22 (fontified nil)) . 3521) (3521 . 3543) (#("Prin" 0 4 (fontified nil)) . 3521) (3521 . 3525) (#("Println" 0 7 (fontified nil)) . -3521) (3521 . 3528) (#("Prin" 0 4 (fontified t face tree-sitter-hl-face:property)) . -3521) (undo-tree-id6 . -4) (undo-tree-id7 . -4) 3525) nil (25913 19960 723456 305000) 0 nil])
+([nil nil ((3537 . 3551) (3536 . 3538) (#("\"" 0 1 (fontified nil face (rainbow-delimiters-depth-2-face))) . -3536) (undo-tree-id4 . -1) (#("a ...any" 0 1 (fontified nil face tree-sitter-hl-face:variable) 1 2 (fontified nil) 2 5 (fontified nil face tree-sitter-hl-face:operator) 5 8 (fontified nil face tree-sitter-hl-face:variable)) . 3537) (undo-tree-id5 . -8) (3536 . 3537)) nil (25913 19960 723454 71000) 0 nil])
+([nil nil ((#("T" 0 1 (fontified t face tree-sitter-hl-face:string)) . -3537) (undo-tree-id0 . -1) (#("h" 0 1 (fontified t face tree-sitter-hl-face:string)) . -3538) (undo-tree-id1 . -1) (#("i" 0 1 (fontified t face tree-sitter-hl-face:string)) . -3539) (undo-tree-id2 . -1) (#("s" 0 1 (fontified t face tree-sitter-hl-face:string)) . -3540) (undo-tree-id3 . -1) 3541) nil (25913 19960 723451 766000) 0 nil])
+([nil nil ((3537 . 3541)) nil (25913 19960 723421 500000) 0 nil])
+([nil current ((apply yas--snippet-revive 3528 3553 #s(yas--snippet nil (#s(yas--field 1 3536 3552 nil nil nil t nil)) nil 57 nil #s(yas--field 1 3536 3552 nil nil nil t nil) nil nil))) nil (25913 19960 723418 744000) 0 nil])
+nil
