@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -202,6 +203,23 @@ func (a *apiConfig) GetAllFeedFollowsByUser(w http.ResponseWriter, r *http.Reque
 	utils.RespondWithJSON(w, 200, feedFollows)
 }
 
+func (a *apiConfig) GetAllPostsByUserId(w http.ResponseWriter, r *http.Request, user database.User) {
+	limitStr := chi.URLParam(r, "limit")
+	dbObj := database.GetPostsByUserParams{}
+	limit, cerr := strconv.Atoi(limitStr)
+	if cerr != nil {
+		utils.RespondWithError(w, 500, "Internal Server Error")
+	}
+	dbObj.Limit = int32(limit)
+	dbObj.UserID = user.ID
+	postsByUser, err := a.DB.GetPostsByUser(a.ctx, dbObj)
+	if err != nil {
+		utils.RespondWithError(w, 500, "Internal Server Error")
+		return 
+	}
+	utils.RespondWithJSON(w, 200, postsByUser)
+}
+
 func (a *apiConfig) Worker(n int32) {
 	fmt.Println("Called")
 	for tick := range time.Tick(6 * time.Second) {
@@ -220,7 +238,7 @@ func (a *apiConfig) Worker(n int32) {
 			wg.Add(1)
 			go func(url string, id uuid.UUID) {
 				defer wg.Done()
-				ProcessRSSURL(url)
+				go ProcessRSSURL(url, id, a)
 				dbObj := database.MarkFeedFetchedParams{}
 				dbObj.ID = id
 				timeObj := sql.NullTime{}
@@ -231,11 +249,10 @@ func (a *apiConfig) Worker(n int32) {
 			}(feed.Url, feed.ID)
 		}
 		wg.Wait()
-		fmt.Println("finished")
 	}
 }
 
-func ProcessRSSURL(url string) {
+func ProcessRSSURL(url string, feedId uuid.UUID, a *apiConfig) {
 	rss := utils.RSS{}
 	cerr := utils.RSSUrlToStruct(url, &rss);
 	if cerr != nil {
@@ -248,6 +265,27 @@ func ProcessRSSURL(url string) {
 
 	for i, item := range rss.Channel.Items {
 		fmt.Printf("%v. item title: %v\n", i, item.Title)
+    publishDate, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+		  fmt.Printf("ERROR: %s", err.Error())
+			return
+		}
+		dbObj := database.CreatePostParams{}
+		dbObj.ID = uuid.New()
+		dbObj.FeedID = feedId
+		dbObj.Title = item.Title
+		dbObj.PublishedAt = publishDate
+		dbObj.Url = item.Link
+		dbObj.Description = item.Desc
+		timeStamp := time.Now()
+		dbObj.CreatedAt = timeStamp
+		dbObj.UpdatedAt = timeStamp
+		// inserts in PostgreSQL cannot be parallelized, only with multiple connections
+		_, derr := a.DB.CreatePost(a.ctx, dbObj)
+		if derr != nil {
+			fmt.Printf("ERROR: %s\n", derr);
+			return
+		}
 	}
 }
 
@@ -294,7 +332,9 @@ func main() {
 	v1Router.Delete("/feed_follows/{id}", apiCfg.authenticate(apiCfg.DeleteFeedFollow))
 	v1Router.Get("/feed_follows", apiCfg.authenticate(apiCfg.GetAllFeedFollowsByUser))
 
-	go apiCfg.Worker(2);
+	v1Router.Get("/posts", apiCfg.authenticate(apiCfg.GetAllPostsByUserId))
+
+	go apiCfg.Worker(60);
 
 	err := http.ListenAndServe(fmt.Sprintf(":%s", port), r)
 	fmt.Println(err)
